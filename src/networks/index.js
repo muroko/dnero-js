@@ -12,7 +12,7 @@ const Mainnet = {
     //rpcUrl: "https://dnero-bridge-rpc.dnerochain.org/rpc",
 	rpcUrl: "http://143.198.111.119:15511/rpc",
     //explorerUrl: "https://explorer.dnerochain.org",
-	explorerUrl: "http://143.198.111.119:7554",
+	explorerUrl: "http://143.198.111.119:5445",
     color: "#1BDED0",
 };
 
