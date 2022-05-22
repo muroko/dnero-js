@@ -18,7 +18,7 @@
   "_requiredBy": [
     "/"
   ],
-  "_resolved": "git://github.com/muroko/dnero-js.git",
+  "_resolved": "https://github.com/muroko/dnero-js",
   "_spec": "@dnerolabs/dnero-js@^0.0.67",
   "_where": "/home/dnerodev/dnero-webwallet",
   "author": {
