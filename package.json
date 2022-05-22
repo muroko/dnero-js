@@ -2,7 +2,6 @@
   "_from": "@dnerolabs/dnero-js@^0.0.67",
   "_id": "@dnerolabs/dnero-js@0.0.67",
   "_inBundle": false,
-  "_integrity": "sha512-1naPiLT4ykteXH2YyzxougJKRo+FSlg9nM7mpQ628vsMHLjKPXqEuyZYGSjQYr7ChjqFJOOpsP0OeL3+bdaZ5Q==",
   "_location": "/@dnerolabs/dnero-js",
   "_phantomChildren": {},
   "_requested": {
@@ -19,8 +18,7 @@
   "_requiredBy": [
     "/"
   ],
-  "_resolved": "https://registry.npmjs.org/@dnerolabs/dnero-js/-/dnero-js-0.0.67.tgz",
-  "_shasum": "f93afee715564d2d6a7ffb53ff7f9a614d63515d",
+  "_resolved": "git://github.com/muroko/dnero-js.git",
   "_spec": "@dnerolabs/dnero-js@^0.0.67",
   "_where": "/home/dnerodev/dnero-webwallet",
   "author": {
