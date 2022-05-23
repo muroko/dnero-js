@@ -1063,7 +1063,7 @@ const Mainnet = {
     chainId: ChainIds.Mainnet,
     name: "Mainnet",
     //rpcUrl: "https://dnero-bridge-rpc.dnerochain.org/rpc",
-	rpcUrl: "http://143.198.111.119:15511/rpc",
+	rpcUrl: "http://143.198.132.249:15511/rpc",
     //explorerUrl: "https://explorer.dnerochain.org",
 	explorerUrl: "http://164.92.81.239:5445",
     color: "#1BDED0",
