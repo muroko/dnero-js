@@ -1,6 +1,7 @@
 require('isomorphic-fetch');
 const BigNumber = require('bignumber.js');
 const dnerojs = require('..');
+const {Ten18} = require("../src/constants");
 const Wallet = dnerojs.Wallet;
 const {SendTransaction, DepositStakeV2Transaction, WithdrawStakeTransaction} = dnerojs.transactions;
 const {HttpProvider} = dnerojs.providers;
@@ -105,72 +106,75 @@ function createWithdrawStakeTransaction(){
 
 
 
-//
-//
-// test('should create a SendTransaction', () => {
-//     const sendTx = createSendTransaction();
-//
-//     expect(sendTx).not.toBe(null);
-// });
-//
-// test('should sign a SendTransaction', () => {
-//     const provider = createHttpProvider(ChainIds.Mainnet);
-//     const privateKey = "0x19f66b5f75f0cf6fe4fbbcca24aba2031031affef8b596b922b9dfd669f8f5ae";
-//     const wallet = new Wallet(privateKey, provider);
-//     const transaction = createSendTransaction();
-//     const signedRawTxBytes = wallet.signTransaction(transaction);
-//
-//     expect(signedRawTxBytes).not.toBe(null);
-// });
-//
-// test('should send 0.0001 DTOKEN to 0xB91f6163E6f1A60b6d932dcD1C190BD364e0df05 [via signer]', async () => {
-//     const provider = new HttpProvider(ChainIds.Privatenet);
-//     provider.setBroadcastAsync(true);
-//     const privateKey = "0xc88b2d8a81ceea76b41e005556c1c77c0062a5ba0566a1fe214770f485adde4f";
-//     const wallet = new Wallet(privateKey, provider);
-//     const transaction = createSendTransaction();
-//     const result = await wallet.sendTransaction(transaction);
-//
-//     expect(result.hash).not.toBe(null);
-// });
-//
-//
-//
-//
-//
-// test('should create a DepositStakeTransaction (Dnero)', () => {
-//     const sendTx = createDepositDneroStakeTransaction();
-//
-//     expect(sendTx).not.toBe(null);
-// });
-//
-// test('should sign a DepositStakeTransaction (Dnero)', () => {
-//     const provider = createHttpProvider(ChainIds.Mainnet);
-//     const privateKey = "0x19f66b5f75f0cf6fe4fbbcca24aba2031031affef8b596b922b9dfd669f8f5ae";
-//     const wallet = new Wallet(privateKey, provider);
-//     const transaction = createDepositDneroStakeTransaction();
-//     const signedRawTxBytes = wallet.signTransaction(transaction);
-//
-//     expect(signedRawTxBytes).not.toBe(null);
-// });
-//
-//
-//
-// test('should create a WithdrawStakeTransaction', () => {
-//     const sendTx = createWithdrawStakeTransaction();
-//
-//     expect(sendTx).not.toBe(null);
-// });
-//
-// test('should sign a WithdrawStakeTransaction', () => {
-//     const provider = createHttpProvider(ChainIds.Mainnet);
-//     const privateKey = "0x19f66b5f75f0cf6fe4fbbcca24aba2031031affef8b596b922b9dfd669f8f5ae";
-//     const wallet = new Wallet(privateKey, provider);
-//     const transaction = createWithdrawStakeTransaction();
-//     const signedRawTxBytes = wallet.signTransaction(transaction);
-//
-//     expect(signedRawTxBytes).not.toBe(null);
-// });
+
+
+test('should create a SendTransaction', () => {
+    const sendTx = createSendTransaction();
+
+    expect(sendTx).not.toBe(null);
+});
+
+test('should sign a SendTransaction', () => {
+    const provider = createHttpProvider(ChainIds.Mainnet);
+    const privateKey = "0x19f66b5f75f0cf6fe4fbbcca24aba2031031affef8b596b922b9dfd669f8f5ae";
+    const wallet = new Wallet(privateKey, provider);
+    const transaction = createSendTransaction();
+    const signedRawTxBytes = wallet.signTransaction(transaction);
+
+    expect(signedRawTxBytes).not.toBe(null);
+});
+
+test('should send 0.0001 DTOKEN to 0xB91f6163E6f1A60b6d932dcD1C190BD364e0df05 [via signer]', async () => {
+    const provider = new HttpProvider(ChainIds.Testnet);
+    provider.setBroadcastAsync(true);
+    const privateKey = "0xc88b2d8a81ceea76b41e005556c1c77c0062a5ba0566a1fe214770f485adde4f";
+    const wallet = new Wallet(privateKey, provider);
+    const transaction = createSendTransaction();
+    console.log('transaction == ');
+    console.log(transaction);
+    console.log(transaction.toJson());
+    const result = await wallet.sendTransaction(transaction);
+
+    expect(result.hash).not.toBe(null);
+});
+
+
+
+
+
+test('should create a DepositStakeTransaction (Dnero)', () => {
+    const sendTx = createDepositDneroStakeTransaction();
+
+    expect(sendTx).not.toBe(null);
+});
+
+test('should sign a DepositStakeTransaction (Dnero)', () => {
+    const provider = createHttpProvider(ChainIds.Mainnet);
+    const privateKey = "0x19f66b5f75f0cf6fe4fbbcca24aba2031031affef8b596b922b9dfd669f8f5ae";
+    const wallet = new Wallet(privateKey, provider);
+    const transaction = createDepositDneroStakeTransaction();
+    const signedRawTxBytes = wallet.signTransaction(transaction);
+
+    expect(signedRawTxBytes).not.toBe(null);
+});
+
+
+
+test('should create a WithdrawStakeTransaction', () => {
+    const sendTx = createWithdrawStakeTransaction();
+
+    expect(sendTx).not.toBe(null);
+});
+
+test('should sign a WithdrawStakeTransaction', () => {
+    const provider = createHttpProvider(ChainIds.Mainnet);
+    const privateKey = "0x19f66b5f75f0cf6fe4fbbcca24aba2031031affef8b596b922b9dfd669f8f5ae";
+    const wallet = new Wallet(privateKey, provider);
+    const transaction = createWithdrawStakeTransaction();
+    const signedRawTxBytes = wallet.signTransaction(transaction);
+
+    expect(signedRawTxBytes).not.toBe(null);
+});
 
 
 test('should create a DepositStakeTransaction (Dtoken)', () => {
