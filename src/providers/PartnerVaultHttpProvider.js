@@ -61,6 +61,7 @@ export default class PartnerVaultHttpProvider extends HttpProvider {
         params = Object.assign(params, {
             userid: this.userId,
             partner_id: this.partnerId,
+            chainid: this.getChainId()
         });
 
         const requestBody = {

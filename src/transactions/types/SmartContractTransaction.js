@@ -14,7 +14,7 @@ export default class SmartContractTransaction extends BaseTransaction{
     constructor(tx){
         super(tx);
 
-        let {from, to, gasLimit, gasPrice, data, value, sequence} = tx;
+        let {from, to, gasLimit, gasPrice, data, value, dneroValue, sequence} = tx;
 
         //Set gas price and gas limit defaults if needed
         if(_.isNil(gasLimit)){
@@ -33,7 +33,13 @@ export default class SmartContractTransaction extends BaseTransaction{
 
         let valueWeiBN = BigNumber.isBigNumber(value) ? value : (new BigNumber(value));
 
-        this.fromInput = new TxInput(from ? from : AddressZero, null, valueWeiBN, sequence);
+        if(_.isNil(dneroValue)){
+            dneroValue = 0;
+        }
+
+        let dneroValueWeiBN = BigNumber.isBigNumber(dneroValue) ? dneroValue : (new BigNumber(dneroValue));
+
+        this.fromInput = new TxInput(from ? from : AddressZero, dneroValueWeiBN, valueWeiBN, sequence);
         this.toOutput = new TxOutput(to, null, null);
         this.gasLimit = gasLimit;
         this.gasPrice = gasPrice;

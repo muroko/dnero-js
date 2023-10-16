@@ -134,7 +134,7 @@ export default class DepositStakeV2Transaction extends BaseTransaction{
             this.source.rlpInput(),
             this.holder.rlpInput(),
 
-            Bytes.fromNumber(this.purpose),
+            (this.purpose === 0 ? Bytes.fromNat("0x0") : Bytes.fromNumber(this.purpose)),
 
             Bytes.fromArray(this.blsPubkeyBytes),
             Bytes.fromArray(this.blsPopBytes),

@@ -10,6 +10,7 @@ const TxType = {
     DepositStake: 8,
     WithdrawStake: 9,
     DepositStakeV2: 10,
+    StakeRewardDistribution: 11,
 };
 
 export default TxType;

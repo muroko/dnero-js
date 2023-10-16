@@ -71,12 +71,22 @@ async function populateTransaction(contract, fragment, args) {
         tx.value = roValue;
     }
 
+    // Populate "dneroValue" override
+    if (ro.dneroValue) {
+        const roDneroValue = new BigNumber(ro.dneroValue);
+        if (!roDneroValue.isZero() && !fragment.payable) {
+            //TODO: throw error - non-payable method cannot override value
+        }
+        tx.dneroValue = roDneroValue;
+    }
+    
     // Remove the overrides
     delete overrides.sequence;
     delete overrides.gasLimit;
     delete overrides.gasPrice;
     delete overrides.from;
     delete overrides.value;
+    delete overrides.dneroValue;
 
     // Make sure there are no stray overrides, which may indicate a
     // typo or using an unsupported key.
@@ -310,6 +320,8 @@ export class ContractFactory {
 
     _populateTransaction(args) {
         let tx = {};
+        console.log('_populateTransaction :: args == ');
+        console.log(args);
 
         // If we have 1 additional argument, we allow transaction overrides
         if (args && args.length === this.interface.deploy.inputs.length + 1 && typeof (args[args.length - 1]) === "object") {
@@ -342,9 +354,18 @@ export class ContractFactory {
             throw new Error('Signer must be valid to deploy a contract');
         }
 
+        let overrides = {};
+        // If 1 extra parameter was passed in, it contains overrides
+        if (args.length === this.interface.deploy.inputs.length + 1) {
+            overrides = args.pop();
+        }
+
+        const params = args.slice();
+        params.push(overrides);
+
         //Run a dry run so we can grab the contract address
-        const sequence = args.sequence || (await this.signer.getTransactionCount()) + 1;
-        const txRequest = this._populateTransaction(args);
+        const sequence = overrides.sequence || (await this.signer.getTransactionCount()) + 1;
+        const txRequest = this._populateTransaction(params);
         txRequest.setSequence(sequence);
         const dryRunTxResponse = await this.signer.callSmartContract(txRequest);
         const tx = await this.signer.sendTransaction(txRequest);
@@ -363,8 +384,18 @@ export class ContractFactory {
             throw new Error('Signer must be valid to simulate a contract deployment');
         }
 
-        const sequence = args.sequence || (await this.signer.getTransactionCount()) + 1;
-        const txRequest = this._populateTransaction(args);
+        let overrides = {};
+        // If 1 extra parameter was passed in, it contains overrides
+        if (args.length === this.interface.deploy.inputs.length + 1) {
+            overrides = args.pop();
+        }
+
+        const params = args.slice();
+        params.push(overrides);
+
+        //Run a dry run so we can grab the contract address
+        const sequence = overrides.sequence || (await this.signer.getTransactionCount()) + 1;
+        const txRequest = this._populateTransaction(params);
         txRequest.setSequence(sequence);
         const dryRunTxResponse = await this.signer.callSmartContract(txRequest);
         return dryRunTxResponse;
