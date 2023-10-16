@@ -1,7 +1,7 @@
 # dnero-js
 
 ## What is dnero-js?
-The dnero-js library aims to be a complete and compact library for interacting with the [Dnero](https://dnerochain.org) Blockchain and its ecosystem.
+The dnero-js library aims to be a complete and compact library for interacting with the [Dnero](https://dneroprotocol.io) Blockchain and its ecosystem.
 
 ## Features
 - Keep your private keys in your client, safe and sound
