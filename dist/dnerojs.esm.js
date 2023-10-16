@@ -22,6 +22,7 @@ const TxType = {
     DepositStake: 8,
     WithdrawStake: 9,
     DepositStakeV2: 10,
+    StakeRewardDistribution: 11,
 };
 
 const StakePurpose = {
@@ -710,7 +711,7 @@ class DepositStakeV2Transaction extends BaseTransaction{
             this.source.rlpInput(),
             this.holder.rlpInput(),
 
-            Bytes.fromNumber(this.purpose),
+            (this.purpose === 0 ? Bytes.fromNat("0x0") : Bytes.fromNumber(this.purpose)),
 
             Bytes.fromArray(this.blsPubkeyBytes),
             Bytes.fromArray(this.blsPopBytes),
@@ -725,7 +726,7 @@ class SmartContractTransaction extends BaseTransaction{
     constructor(tx){
         super(tx);
 
-        let {from, to, gasLimit, gasPrice, data, value, sequence} = tx;
+        let {from, to, gasLimit, gasPrice, data, value, dneroValue, sequence} = tx;
 
         //Set gas price and gas limit defaults if needed
         if(_.isNil(gasLimit)){
@@ -744,7 +745,13 @@ class SmartContractTransaction extends BaseTransaction{
 
         let valueWeiBN = BigNumber.isBigNumber(value) ? value : (new BigNumber(value));
 
-        this.fromInput = new TxInput(from ? from : AddressZero, null, valueWeiBN, sequence);
+        if(_.isNil(dneroValue)){
+            dneroValue = 0;
+        }
+
+        let dneroValueWeiBN = BigNumber.isBigNumber(dneroValue) ? dneroValue : (new BigNumber(dneroValue));
+
+        this.fromInput = new TxInput(from ? from : AddressZero, dneroValueWeiBN, valueWeiBN, sequence);
         this.toOutput = new TxOutput(to, null, null);
         this.gasLimit = gasLimit;
         this.gasPrice = gasPrice;
@@ -914,6 +921,88 @@ class WithdrawStakeTransaction extends BaseTransaction{
     }
 }
 
+class StakeRewardDistributionTransaction extends BaseTransaction{
+    constructor(tx){
+        super(tx);
+
+        let {holder, beneficiary, splitBasisPoint, gasPrice, sequence} = tx;
+
+        if(_.isNil(gasPrice)){
+            gasPrice = gasPriceDefault;
+        }
+
+        let feeInDTokenWeiBN = BigNumber.isBigNumber(gasPrice) ? gasPrice : (new BigNumber(gasPrice));
+        this.fee = new Coins(new BigNumber(0), feeInDTokenWeiBN);
+
+        this.holder = new TxInput(holder, null, null, sequence);
+
+        this.beneficiary = new TxOutput(beneficiary, null, null);
+
+        this.splitBasisPoint = splitBasisPoint;
+
+
+        if(_.isNil(sequence)){
+            this.setSequence(1);
+        }
+    }
+
+    setSequence(sequence){
+        const input = this.holder;
+        input.sequence = sequence;
+    }
+
+    getSequence(){
+        const input = this.holder;
+        return input.sequence;
+    }
+
+    setFrom(address){
+        const input = this.holder;
+        input.address = address;
+    }
+
+    setSignature(signature){
+        let input = this.holder;
+        input.setSignature(signature);
+    }
+
+    signBytes(chainID){
+        // Detach the existing signature from the source if any, so that we don't sign the signature
+        let sig = this.holder.signature;
+
+        this.holder.signature = "";
+
+        let encodedChainID = RLP.encode(Bytes.fromString(chainID));
+        let encodedTxType = RLP.encode(Bytes.fromNumber(this.getType()));
+        let encodedTx = RLP.encode(this.rlpInput());
+        let payload = encodedChainID + encodedTxType.slice(2) + encodedTx.slice(2);
+
+        // For ethereum tx compatibility, encode the tx as the payload
+        let ethTxWrapper = new EthereumTx(payload);
+        let signedBytes = RLP.encode(ethTxWrapper.rlpInput()); // the signBytes conforms to the Ethereum raw tx format
+
+        // Attach the original signature back to the source
+        this.holder.signature = sig;
+
+        return signedBytes;
+    }
+
+    getType(){
+        return TxType.DepositStakeV2;
+    }
+
+    rlpInput(){
+        let rlpInput = [
+            this.fee.rlpInput(),
+            this.holder.rlpInput(),
+            this.beneficiary.rlpInput(),
+            (this.splitBasisPoint === 0 ? Bytes.fromNat("0x0") : Bytes.fromNumber(this.splitBasisPoint)),
+        ];
+
+        return rlpInput;
+    }
+}
+
 function sign(chainID, tx, privateKey) {
     const txRawBytes = tx.signBytes(chainID);
     const txHash = sha3(txRawBytes);
@@ -957,6 +1046,9 @@ function transactionFromJson(data){
     if(txType === TxType.WithdrawStake){
         return new WithdrawStakeTransaction(txData);
     }
+    if(txType === TxType.StakeRewardDistribution){
+        return new StakeRewardDistributionTransaction(txData);
+    }
 
     // Unknown transaction type. Throw error?
     return null;
@@ -970,7 +1062,8 @@ var index$1 = /*#__PURE__*/Object.freeze({
     DepositStakeTransaction: DepositStakeTransaction,
     DepositStakeV2Transaction: DepositStakeV2Transaction,
     WithdrawStakeTransaction: WithdrawStakeTransaction,
-    SmartContractTransaction: SmartContractTransaction
+    SmartContractTransaction: SmartContractTransaction,
+    StakeRewardDistributionTransaction: StakeRewardDistributionTransaction
 });
 
 class BaseProvider {
@@ -1061,62 +1154,129 @@ const ChainIds =  {
 
 const Mainnet = {
     chainId: ChainIds.Mainnet,
+    chainIdNum: 5647,
     name: "Mainnet",
-    //rpcUrl: "https://dnero-bridge-rpc.dnerochain.org/rpc",
-	rpcUrl: "http://143.198.132.249:15511/rpc",
-    //explorerUrl: "https://explorer.dnerochain.org",
-	explorerUrl: "http://164.92.81.239:5445",
+    rpcUrl: "https://dnero-bridge-rpc.dnerochain.xyz/rpc",
+    ethRpcUrl: "https://eth-rpc-api.dnerochain.xyz",
+    explorerUrl: "https://explorer.dnerochain.xyz",
+    explorerApiUrl: "https://explorer-api.dnerochain.xyz",
     color: "#1BDED0",
+    blockchain: {
+        mainchainID : 5647,
+        mainchainIDStr : ChainIds.Mainnet,
+
+        __LEGACY__mainchainDTokenTokenBankAddr : "0x3c5f7cE61561AA7A8e8919733aC250C84835427f",
+        __LEGACY__mainchainDNC20TokenBankAddr : "0x0F1C0a95F5409546Be4E6C56351c8eA5AC8Cdd04",
+        __LEGACY__mainchainDNC721TokenBankAddr : "0x551c097e520584689FC8daf4D7b3905fa6bfA54c",
+        __LEGACY__mainchainDNC1155TokenBankAddr : "0x356E1ed03Ed7f12d85b666515A7e36952090e609",
+
+        mainchainDTokenTokenBankAddr : "0x1169B30901E4591Ee8A0781af0C9003f608D6b8b",
+        mainchainDNC20TokenBankAddr : "0x9f904dE01990e3Ba1AD93629604099D13706ec36",
+        mainchainDNC721TokenBankAddr : "0xc85acE39701E02Dd27Df799988b39384AAe64774",
+        mainchainDNC1155TokenBankAddr : "0x5907D8e36785fa08E23A7955285EfFf3503909bd",
+
+        crossChainTransferFeeInDToken : 10,
+
+        subchains: [
+            {
+                name: 'Playground',
+                subchainID : 360888,
+                subchainIDStr : "tsub360888",
+                subchainRPC : "https://tsub360888-rpc.dnerochain.xyz/rpc",
+                subchainDTokenTokenBankAddr : "0x5a443704dd4B594B382c22a083e2BD3090A6feF3",
+                subchainDNC20TokenBankAddr : "0x47e9Fbef8C83A1714F1951F142132E6e90F5fa5D",
+                subchainDNC721TokenBankAddr : "0x8Be503bcdEd90ED42Eff31f56199399B2b0154CA",
+                subchainDNC1155TokenBankAddr : "0x47c5e40890bcE4a473A49D7501808b9633F29782",
+
+                crossChainTransferFeeInDToken : 10,
+
+                explorerUrl: 'https://tsub360888-explorer.dnerochain.xyz'
+            },
+            {
+                name: 'Lavita',
+                subchainID : 360890,
+                subchainIDStr : "tsub360890",
+                subchainRPC : "https://tsub360890-rpc.dnerochain.xyz/rpc",
+                subchainDTokenTokenBankAddr : "0x5a443704dd4B594B382c22a083e2BD3090A6feF3",
+                subchainDNC20TokenBankAddr : "0x47e9Fbef8C83A1714F1951F142132E6e90F5fa5D",
+                subchainDNC721TokenBankAddr : "0x8Be503bcdEd90ED42Eff31f56199399B2b0154CA",
+                subchainDNC1155TokenBankAddr : "0x47c5e40890bcE4a473A49D7501808b9633F29782",
+
+                crossChainTransferFeeInDToken : 10,
+
+                explorerUrl: 'https://tsub360890-explorer.dnerochain.xyz'
+            },
+            {
+                name: 'Space Junk',
+                subchainID : 360889,
+                subchainIDStr : "tsub360889",
+                subchainRPC : "https://tsub360889-rpc.dnerochain.xyz/rpc",
+                subchainDTokenTokenBankAddr : "0x5a443704dd4B594B382c22a083e2BD3090A6feF3",
+                subchainDNC20TokenBankAddr : "0x47e9Fbef8C83A1714F1951F142132E6e90F5fa5D",
+                subchainDNC721TokenBankAddr : "0x8Be503bcdEd90ED42Eff31f56199399B2b0154CA",
+                subchainDNC1155TokenBankAddr : "0x47c5e40890bcE4a473A49D7501808b9633F29782",
+
+                crossChainTransferFeeInDToken : 10,
+
+                explorerUrl: 'https://tsub360889-explorer.dnerochain.xyz'
+            }
+        ]
+    }
 };
 
 const Testnet = {
     chainId: ChainIds.Testnet,
+    chainIdNum: 5651,
     name: "Testnet",
-    rpcUrl: "https://dnero-bridge-rpc-testnet.dnerochain.org/rpc",
-    explorerUrl: "https://beta-explorer.dnerochain.org",
+    rpcUrl: "https://dnero-bridge-rpc-testnet.dnerochain.xyz/rpc",
+    ethRpcUrl: "https://eth-rpc-api-testnet.dnerochain.xyz/rpc",
+    explorerUrl: "https://explorer-testnet.dnerochain.xyz",
+    explorerApiUrl: "https://explorer-testnet-api.dnerochain.xyz",
     color: "#FF4A8D",
-};
+    blockchain: {
+        mainchainID : 5651,
+        mainchainIDStr : ChainIds.Testnet,
 
-const TestnetSapphire = {
-    chainId: ChainIds.TestnetSapphire,
-    name: "Testnet (Sapphire)",
-    rpcUrl: null,
-    explorerUrl: null,
-    color: "#3199F2",
+        mainchainDTokenTokenBankAddr : "0xA906CB988bC8D37091B5962685E0bb5160039AC6",
+        mainchainDNC20TokenBankAddr : "0x73b72cCBf9CefF04032cd7CA52AC64aE310985af",
+        mainchainDNC721TokenBankAddr : "0x0A7111590CF9C547a1AA25A9a6c85a15aC86b7C8",
+        mainchainDNC1155TokenBankAddr : "0xd3cF92dd341Ded226aa8a02C47296bAA23CFaaff",
+
+        crossChainTransferFeeInDToken : 10,
+
+        subchains: [
+            {
+                name: 'Replay Demo',
+                subchainID : 360777,
+                subchainIDStr : "tsub360777",
+                subchainRPC : "https://testnet-tsub360777-rpc.dnerochain.xyz/rpc",
+                subchainDTokenTokenBankAddr : "0x5a443704dd4B594B382c22a083e2BD3090A6feF3",
+                subchainDNC20TokenBankAddr : "0x47e9Fbef8C83A1714F1951F142132E6e90F5fa5D",
+                subchainDNC721TokenBankAddr : "0x8Be503bcdEd90ED42Eff31f56199399B2b0154CA",
+                subchainDNC1155TokenBankAddr : "0x47c5e40890bcE4a473A49D7501808b9633F29782",
+
+                crossChainTransferFeeInDToken : 10,
+
+                explorerUrl: 'https://testnet-tsub360777-explorer.dnerochain.xyz'
+            }
+        ]
+    }
 };
 
 const Privatenet = {
     chainId: ChainIds.Privatenet,
+    chainIdNum: 5652,
     name: "Smart Contracts Sandbox",
-    rpcUrl: "https://dnero-node-rpc-smart-contract-sandbox.dnerochain.org/rpc",
-    explorerUrl: "https://smart-contract-testnet-explorer.dnerochain.org",
+    rpcUrl: "https://dnero-node-rpc-smart-contract-sandbox.dnerochain.xyz/rpc",
+    explorerUrl: "https://smart-contracts-sandbox-explorer.dnerochain.xyz",
+    explorerApiUrl: "https://smart-contracts-sandbox-explorer.dnerochain.xyz:7554",
     color: "#7157FF",
-};
-
-const EliteEdgeTestnet = {
-    chainId: ChainIds.EliteEdgeTestnet,
-    name: "Elite Edge Testnet",
-    rpcUrl: "http://35.235.73.165:16888/rpc",
-    explorerUrl: "https://elite-edge-testnet-explorer.dnerochain.org",
-    color: "#E0B421",
 };
 
 const networks = {
     [ChainIds.Mainnet]: Mainnet,
     [ChainIds.Testnet]: Testnet,
-    [ChainIds.TestnetSapphire]: TestnetSapphire,
     [ChainIds.Privatenet]: Privatenet,
-    [ChainIds.EliteEdgeTestnet]: EliteEdgeTestnet,
-};
-
-const getRPCUrlForChainId = (chainId) => {
-    //TODO throw if unknown
-    return networks[chainId]['rpcUrl'];
-};
-
-const getExplorerUrlForChainId = (chainId) => {
-    //TODO throw if unknown
-    return networks[chainId]['explorerUrl'];
 };
 
 const getNetworkForChainId = (chainId) => {
@@ -1124,16 +1284,32 @@ const getNetworkForChainId = (chainId) => {
     return networks[chainId];
 };
 
+const getRPCUrlForChainId = (chainId) => {
+    return _.get(getNetworkForChainId(chainId), 'rpcUrl');
+};
+
+const getExplorerUrlForChainId = (chainId) => {
+    return _.get(getNetworkForChainId(chainId), 'explorerUrl');
+};
+
+const getExplorerApiUrlForChainId = (chainId) => {
+    return _.get(getNetworkForChainId(chainId), 'explorerApiUrl');
+};
+
+const getBlockchainInfoForChainId = (chainId) => {
+    return _.get(getNetworkForChainId(chainId), 'blockchain');
+};
+
 var index$2 = /*#__PURE__*/Object.freeze({
     Mainnet: Mainnet,
     Testnet: Testnet,
-    TestnetSapphire: TestnetSapphire,
     Privatenet: Privatenet,
-    EliteEdgeTestnet: EliteEdgeTestnet,
     ChainIds: ChainIds,
     getRPCUrlForChainId: getRPCUrlForChainId,
     getExplorerUrlForChainId: getExplorerUrlForChainId,
-    getNetworkForChainId: getNetworkForChainId
+    getExplorerApiUrlForChainId: getExplorerApiUrlForChainId,
+    getNetworkForChainId: getNetworkForChainId,
+    getBlockchainInfoForChainId: getBlockchainInfoForChainId
 });
 
 function getResult(response) {
@@ -1321,6 +1497,7 @@ class PartnerVaultHttpProvider extends HttpProvider {
         params = Object.assign(params, {
             userid: this.userId,
             partner_id: this.partnerId,
+            chainid: this.getChainId()
         });
 
         const requestBody = {
@@ -1751,12 +1928,20 @@ async function populateTransaction(contract, fragment, args) {
         tx.value = roValue;
     }
 
+    // Populate "dneroValue" override
+    if (ro.dneroValue) {
+        const roDneroValue = new BigNumber(ro.dneroValue);
+        if (!roDneroValue.isZero() && !fragment.payable) ;
+        tx.dneroValue = roDneroValue;
+    }
+    
     // Remove the overrides
     delete overrides.sequence;
     delete overrides.gasLimit;
     delete overrides.gasPrice;
     delete overrides.from;
     delete overrides.value;
+    delete overrides.dneroValue;
 
     // Make sure there are no stray overrides, which may indicate a
     // typo or using an unsupported key.
@@ -1982,6 +2167,8 @@ class ContractFactory {
 
     _populateTransaction(args) {
         let tx = {};
+        console.log('_populateTransaction :: args == ');
+        console.log(args);
 
         // If we have 1 additional argument, we allow transaction overrides
         if (args && args.length === this.interface.deploy.inputs.length + 1 && typeof (args[args.length - 1]) === "object") {
@@ -2014,9 +2201,18 @@ class ContractFactory {
             throw new Error('Signer must be valid to deploy a contract');
         }
 
+        let overrides = {};
+        // If 1 extra parameter was passed in, it contains overrides
+        if (args.length === this.interface.deploy.inputs.length + 1) {
+            overrides = args.pop();
+        }
+
+        const params = args.slice();
+        params.push(overrides);
+
         //Run a dry run so we can grab the contract address
-        const sequence = args.sequence || (await this.signer.getTransactionCount()) + 1;
-        const txRequest = this._populateTransaction(args);
+        const sequence = overrides.sequence || (await this.signer.getTransactionCount()) + 1;
+        const txRequest = this._populateTransaction(params);
         txRequest.setSequence(sequence);
         const dryRunTxResponse = await this.signer.callSmartContract(txRequest);
         const tx = await this.signer.sendTransaction(txRequest);
@@ -2035,8 +2231,18 @@ class ContractFactory {
             throw new Error('Signer must be valid to simulate a contract deployment');
         }
 
-        const sequence = args.sequence || (await this.signer.getTransactionCount()) + 1;
-        const txRequest = this._populateTransaction(args);
+        let overrides = {};
+        // If 1 extra parameter was passed in, it contains overrides
+        if (args.length === this.interface.deploy.inputs.length + 1) {
+            overrides = args.pop();
+        }
+
+        const params = args.slice();
+        params.push(overrides);
+
+        //Run a dry run so we can grab the contract address
+        const sequence = overrides.sequence || (await this.signer.getTransactionCount()) + 1;
+        const txRequest = this._populateTransaction(params);
         txRequest.setSequence(sequence);
         const dryRunTxResponse = await this.signer.callSmartContract(txRequest);
         return dryRunTxResponse;
