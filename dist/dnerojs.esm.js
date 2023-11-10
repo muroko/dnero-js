@@ -1157,7 +1157,7 @@ const Mainnet = {
     chainIdNum: 5647,
     name: "Mainnet",
     rpcUrl: "https://dnero-bridge-rpc.dnerochain.xyz/rpc",
-    ethRpcUrl: "https://eth-rpc-api.dnerochain.xyz",
+    ethRpcUrl: "https://eth-rpc-api.dnerochain.xyz/rpc",
     explorerUrl: "https://explorer.dnerochain.xyz",
     explorerApiUrl: "https://explorer-api.dnerochain.xyz",
     color: "#1BDED0",
